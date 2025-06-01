@@ -5,10 +5,10 @@
 #include <vector>
 #include <iomanip>
 #include <string>
-#include <windows.h> // For clearScreen function
-#include <limits>    // For numeric_limits
-#include <algorithm> // For max_element
-#include <cctype>    // For toupper function
+#include <windows.h> 
+#include <limits>    
+#include <algorithm> 
+#include <cctype>    
 #include <sstream>
 #include <map>
 #include <ctime>
@@ -18,6 +18,10 @@
 #include <ctime>
 
 using namespace std;
+
+
+
+
 
 struct person {
     string ride_id; 
@@ -34,7 +38,7 @@ struct person {
     string status;
     bool isCurrentRide = false;
     double totalFare;
-    int assignedDriverId = -1; // Added to store driver ID
+    int assignedDriverId = -1; 
 
     static const string Pending;
     static const string Confirmed;
@@ -91,8 +95,9 @@ public:
 
     void printAvailableDrivers() {
         std::cout << "\nAvailable Drivers:\n";
-        std::cout << "ID  | Name           | Vehicle\n";
-        std::cout << "----------------------------\n";
+        std::cout << "------------------------------\n";
+        std::cout << "ID | Name            | Vehicle\n";
+        std::cout << "------------------------------\n";
         for (const auto& driver : drivers) {
             if (driver.available) {
                 std::cout << driver.id << " | " << driver.name << " | " << driver.vehicle << "\n";
@@ -101,9 +106,16 @@ public:
     }
 };
 
+string toLower(const string& str) {
+    string result = str;
+    transform(result.begin(), result.end(), result.begin(), ::tolower);
+    return result;
+}
+
+
 // Function Prototypes
 void booking(list<struct person>& people_list, DriverManager& dm);
-void searching(list<struct person>& people_list);
+void searching(list<struct person>& people, DriverManager& dm);
 void clearScreen();
 void onride(list<struct person>& people_list, DriverManager& dm);
 void vehicle_type(string& vehicle);
@@ -111,13 +123,14 @@ void Sedan();
 void view_all_rides(list<struct person>& people, DriverManager& dm);
 void current_ride_details(list<person>& people, DriverManager& dm);
 void editRides(list<struct person>& people, DriverManager& dm);
-void searchRides(list<struct person>& people);
 void cancelRides(list<struct person>& people, DriverManager& dm);
 void deleteRides(list<struct person>& people, DriverManager& dm);
 void goingRides(list<struct person>& people, DriverManager& dm);
 int number_of_persons();
 int countDuplicateVectors(const list<vector<string>>& data);
 void startRideWithAnimation(list<person>& people, DriverManager& dm);
+
+
 
 int main() {
     int choice;
@@ -136,14 +149,16 @@ int main() {
     do {
         clearScreen();
         cout << "\n";
-        cout << "Welcome to the Ride Management System\n";
+        cout << "===============================================\n";
+        cout << "| Welcome to the GalaxyRide Management System |\n";
+        cout << "===============================================\n\n";
         cout << "1. Book a ride\n";
         cout << "2. View all rides\n";
         cout << "3. Edit a ride\n";
         cout << "4. Delete a ride\n";
         cout << "5. Search for a ride\n";
         cout << "6. Cancel a ride\n";
-        cout << "7. View available drivers\n";  // New option
+        cout << "7. View available drivers\n"; 
         cout << "0. Exit\n";
         cout << "Please enter your choice: ";
         
@@ -173,7 +188,7 @@ int main() {
                 break;
             case 5:
                 clearScreen();
-                searching(people);
+                searching(people, dm);
                 break;
             case 6:
                 clearScreen();
@@ -184,7 +199,13 @@ int main() {
                 dm.printAvailableDrivers();
                 break;
             case 0:
-                cout << "Exiting the system...\n";
+                cout << "\n\n";
+                cout << "=========================================================\n";
+                cout << "| Thank you for using the GalaxyRide Management System! |\n";
+                cout << "=========================================================\n";
+                cout << "                                       by: GalaxyRideTeam\n";
+                cout << "\n\n";
+                cout << "Exiting the program...\n";
                 break;
             default:
                 cout << "Invalid choice. Please try again.\n";
@@ -197,8 +218,6 @@ int main() {
         }
         
     } while (choice != 0);
-    
-    cout << "Thank you for using the Ride Management System!\n";
     return 0;
 }
 
@@ -214,29 +233,14 @@ void clearScreen() {
 }
 
 
-void playRideAnimation(const list<struct person>& people, const DriverManager& dm) {
-    clearScreen();
-    cout << "Starting ride animation...\n\n";
-    
-    startRideWithAnimation(const_cast<list<person>&>(people), const_cast<DriverManager&>(dm));
-    for (int i = 0; i < 3; i++) {
-        cout << "Driving " << string(i + 1, '.') << endl;
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Pause for effect
-    }
-    
-    cout << "\nRide started!\n";
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-}
 
-
-
-
+int groupRideCount = 0;
 
 
 void onride(list<struct person>& people_list, DriverManager& dm) {
     clearScreen();
 
-    // ===== 1️⃣ Check for rides & group them (same as before) =====
+    
     if (people_list.empty()) {
         cout << "No active rides.\n";
         return;
@@ -244,7 +248,7 @@ void onride(list<struct person>& people_list, DriverManager& dm) {
 
     map<tuple<string, int, int, int, string, string>, vector<person*>> groupedRides;
     for (auto& p : people_list) {
-        if (p.status == "OnRide" || p.status == "Confirmed") {
+        if (p.status == "OnRide" || p.status == "Confirmed" || p.status == "Pending") {
             auto key = make_tuple(p.vehicle, p.rideDay, p.rideMonth, p.rideYear, p.pickup, p.dropoff);
             groupedRides[key].push_back(&p);
         }
@@ -257,8 +261,8 @@ void onride(list<struct person>& people_list, DriverManager& dm) {
         return;
     }
 
-    // ===== 2️⃣ Store ride details before animation =====
-    vector<string> rideDetails; // Stores driver/route info to redisplay later
+    vector<string> rideDetails; // list of rideDetails
+    
 
     for (const auto& group : groupedRides) {
         const auto& [vehicle, day, month, year, pickup, dropoff] = group.first;
@@ -270,7 +274,7 @@ void onride(list<struct person>& people_list, DriverManager& dm) {
            << "Date: " << month << "/" << day << "/" << year << "\n"
            << "Route: " << pickup << " -> " << dropoff << "\n";
 
-        // Add driver info (if available)
+        
         if (riders[0]->assignedDriverId != -1) {
             for (const auto& driver : dm.getDrivers()) {
                 if (driver.id == riders[0]->assignedDriverId) {
@@ -279,33 +283,33 @@ void onride(list<struct person>& people_list, DriverManager& dm) {
                 }
             }
         }
-        rideDetails.push_back(ss.str()); // Save this ride's details
+        rideDetails.push_back(ss.str()); 
     }
 
-    // ===== 3️⃣ Display ride details FIRST =====
     cout << "=====================\n"
          << "| CURRENTLY ON RIDE |\n"
          << "=====================\n";
 
     for (const auto& details : rideDetails) {
-        cout << details; // Show driver/route/vehicle info
+        cout << details; 
+        groupRideCount++;
     }
 
-    // ===== 4️⃣ Trigger animation =====
+    
     cout << "\nPress Enter to start the ride...";
     cin.ignore(); cin.get();
 
     clearScreen();
-    startRideWithAnimation(people_list, dm); // Play your animation
+    startRideWithAnimation(people_list, dm); 
 
-    // ===== 5️⃣ Redisplay key info after animation =====
+    
     clearScreen();
     cout << "====================================================\n"
          << "| THANK YOU FOR RIDING WITH US! HAVE A GREAT DAY!  |\n"
          << "====================================================\n"
          << "                                  by: GalaxyRideTeam";
 
-    cout << "\nPress Enter to return to menu...";
+    cout << "\n\n\nPress Enter to return to menu...";
     cin.ignore(); cin.get();
 }
 
@@ -346,44 +350,51 @@ void Sedan() {
     cout << "Please wait...\n";
 }
 
-void searching(list<struct person>& people) {
+void searching(list<struct person>& people, DriverManager& dm) {
     string fname, lname;
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
     cout << "\nEnter the first name of the person to search: ";
-    cin >> fname;
-    cout << "Enter the last name of the person to search: ";
-    cin >> lname;
+    getline(cin, fname);
+    cout << "\nEnter the last name of the person to search: ";
+    getline(cin, lname);
 
     bool found = false;
-    for (const auto& p : people) {
-        if (p.fname == fname && p.lname == lname) {
+    for (auto& p : people) {
+        if (toLower(p.fname) == toLower(fname) && toLower(p.lname) == toLower(lname) && p.status == "Pending") {
             found = true;
+
             cout << "\nRide details for " << p.fname << " " << p.lname << ":\n";
             cout << "Phone Number: " << p.phone << "\n";
             cout << "Pickup Location: " << p.pickup << "\n";
             cout << "Dropoff Location: " << p.dropoff << "\n";
             cout << "Date of Ride: " << p.rideYear << "-" 
-                << setw(2) << setfill('0') << p.rideMonth << "-" 
-                << setw(2) << setfill('0') << p.rideDay << "\n";
+                 << setw(2) << setfill('0') << p.rideMonth << "-" 
+                 << setw(2) << setfill('0') << p.rideDay << "\n";
             cout << "Vehicle Type: " << p.vehicle << "\n";
             cout << string(30, '=') << endl;
             cout << "Ride is Pending\n";
             cout << string(30, '=') << endl;
-            
+
             cout << "Do you wish to proceed with the ride? (y/n): ";
             char choice;
             cin >> choice;
+
             if (toupper(choice) == 'Y') {
+                p.status = "Pending";  // Update status
                 cout << "Ride is confirmed.\n";
-                return;
+                p.isCurrentRide = true;
+                current_ride_details(people, dm);
             } else {
                 cout << "Ride is cancelled.\n";
             }
-            return;
+
+            return; 
         }
     }
-    
+
     if (!found) {
-        cout << "Ride not found.\n";
+        cout << "No pending ride found for the specified person.\n";
     }
 }
 
@@ -425,14 +436,14 @@ void booking(list<struct person>& people, DriverManager& dm) {
         return;
     }
 
-    // First select locations that will be shared by all persons in this booking
+
     
 
     for (int i = 0; i < num_persons; ++i) {
         clearScreen();
         struct person p;
 
-        // Generate a simple unique ride_id using current time and loop index
+        
         p.ride_id = to_string(static_cast<long long>(time(nullptr))) + "_" + to_string(i);
 
         cout << "\nBooking for person " << (i + 1) << ":\n";
@@ -447,16 +458,14 @@ void booking(list<struct person>& people, DriverManager& dm) {
         cout << "Please enter your phone number: ";
         getline(cin, p.phone);
 
-        // Set the locations that were already validated
-
-
+    
         cout << "\nLOCATION DETAILS:";
 
         auto [fromCity, toCity] = calculator.selectLocations(cities);
         string from = fromCity->name;
         string to = toCity->name;
         
-        // Calculate distance and fare rates once since they're the same for all persons
+        
         double distance = calculator.calculateDistance(*fromCity, *toCity);
         
         // Show route information once
@@ -504,7 +513,6 @@ void booking(list<struct person>& people, DriverManager& dm) {
         }
     }
 
-    cout << "\n\nThank you for using our ride management system!\n";
     char choice;
     
     string prompt = (num_persons > 1) ? 
@@ -524,8 +532,8 @@ void booking(list<struct person>& people, DriverManager& dm) {
                     dm.releaseDriver(p.assignedDriverId);
                 }
                 p.isCurrentRide = false;
-                p.status = "Cancelled";
-                cout << "\nRide has been cancelled for " << p.fname << " " << p.lname;
+                p.status = "Pending";
+                cout << "\nRide has been Pending for " << p.fname << " " << p.lname;
             }
         }
     }
@@ -645,7 +653,7 @@ void current_ride_details(list<person>& people, DriverManager& dm) {
 }
 
 int countDuplicateVectors(const list<vector<string>>& data) {
-    if (data.size() < 2) return 0; // Need at least 2 vectors to have duplicates
+    if (data.size() < 2) return 0; 
     
     // Convert to vector for easier indexing
     vector<vector<string>> temp(data.begin(), data.end());
@@ -914,19 +922,6 @@ void view_all_rides(list<struct person>& people, DriverManager& dm) {
 }
 
 
-    // [Rest of your existing view_all_rides function implementation]
-    // ... (keep all the existing view_all_rides code, just add driver ID display where appropriate)
-
-
-// [Rest of your existing functions (editRides, deleteRides, goingRides, cancelRides) with DriverManager parameter added]
-// Make sure to update these functions to handle driver assignment/release when needed
-
-string toLower(const string& str) {
-    string result = str;
-    transform(result.begin(), result.end(), result.begin(), ::tolower);
-    return result;
-}
-
 string toTitleCase(const string& str) {
     stringstream ss(str);
     string word, result;
@@ -966,7 +961,7 @@ void editRides(list<struct person>& people, DriverManager& dm) {
     int totalChanges = 0;
 
     
-    int completeCount = count_if(people.begin(), people.end(),
+    int pendingCount = count_if(people.begin(), people.end(),
         [](const person& p) {
             return p.status == "Pending" || p.status == "pending";
         });
@@ -982,14 +977,15 @@ void editRides(list<struct person>& people, DriverManager& dm) {
 
 
     if (!anyPending) {
-        cout << "\nNo pending rides found.\n";
-        clearScreen();
-        view_all_rides(people, dm);
+        cout << "\n\nNo pending rides found.\n";
+        cout << "Press any key to return to menu...";
+        cin.ignore();
+        cin.get();
         return;
     }
 
     cout << "\nVerification is complete...";
-    cout << "\nTotal Pending Rides: " << completeCount;
+    cout << "\nTotal Pending Rides: " << pendingCount;
     cout << "\nPlease enter the Ride ID number or first name you want to edit: ";
     getline(cin >> ws, user_input);
 
@@ -1209,7 +1205,7 @@ void deleteRides(list<struct person>& people, DriverManager& dm) {
 
     if (!found) {
         cout << "\nNo matching records found.";
-        cout << "Press any key to return to menu...";
+        cout << "\nPress any key to return to menu...";
         cin.ignore();
         cin.get();
     }
@@ -1247,7 +1243,8 @@ void goingRides(list<struct person>& people, DriverManager& dm) {
 
 
             if (tolower(choice) == 'y') {
-                onride(people, dm);
+                p.isCurrentRide = true;
+                current_ride_details(people, dm);
                 return;
 
                 cout << "\nDo you want to book a ride again? (y/n): ";
@@ -1425,9 +1422,9 @@ const char* van[] = {
 
 
 const char* train[] = {
-    "___________________________________________________ o O      ",
-    "__/|___|___|___|___|___|___|___|___|___|___|___|___||_[_   ",
-    "<'--0--0--0--0--0--0--0--0--0--0--0--0--0--0--0--0--0--0--0'"
+    "____________________________________ o O      ",
+    "__/|___|___|___|___|___|___|___|___||_[_   ",
+    "<'--0--0--0--0--0--0--0--0--0--0--0--0--0--0'"
 };
 
 void animateVehicle(const string& vehicleType, const string& message = "Your ride is on the way!") {
@@ -1460,11 +1457,11 @@ void animateVehicle(const string& vehicleType, const string& message = "Your rid
     }
     else if (vehicleType == "Train") {
         art = train;
-        lines = 4;
+        lines = 3;
     }
-    // ... [Add other vehicle checks] ...
+    
     else {
-        art = car; // Default to car if type unknown
+        art = car; 
         lines = 4;
     }
 
@@ -1495,7 +1492,7 @@ tuple<int, int, int> getCurrentDate() {
     );
 }
 
-// Check if a ride is scheduled for today
+
 bool isRideToday(const person& p) {
     auto [currentDay, currentMonth, currentYear] = getCurrentDate();
     return (
@@ -1506,8 +1503,14 @@ bool isRideToday(const person& p) {
 }
 
 
+
+
 void startRideWithAnimation(list<person>& people, DriverManager& dm) {
-    clearScreen();
+    
+
+    vector<string> tempVehicles;
+    
+
     cout << "====== STARTING RIDES SCHEDULED FOR TODAY ======\n\n";
 
     bool foundTodayRide = false;
@@ -1515,20 +1518,39 @@ void startRideWithAnimation(list<person>& people, DriverManager& dm) {
     for (auto& p : people) {
         if ((p.status == "Confirmed" || p.status == "Pending") && isRideToday(p)) {
             foundTodayRide = true;
-            cout << "Starting ride for: " << p.fname << " " << p.lname << "\n";
-            cout << "Vehicle: " << p.vehicle << "\n";
-            cout << "Route: " << p.pickup << " → " << p.dropoff << "\n\n";
 
-            // Play the vehicle animation
-            animateVehicle(p.vehicle, "Your ride is starting now!");
-
-            // Update status to "OnRide"
-            p.status = "Completed";
-            cout << "\nRide completed! You have arrived!\n"; 
-            cout << string(40, '=') << "\n\n";
+            tempVehicles.push_back(p.vehicle);
+             p.status = "Completed";
+        
+           
         }
     }
 
+
+    if (foundTodayRide) {
+        if (groupRideCount == 1) {
+            animateVehicle(tempVehicles[0], "Your ride is starting now!");
+            cout << "\nRide completed! You have arrived!\n"; 
+            cout << string(40, '=') << "\n\n";
+        } else if (groupRideCount != 1) {
+            for (auto& v: tempVehicles) {
+                animateVehicle(v, "Your ride is starting now!");
+                 cout << "\nRide completed! You have arrived!\n"; 
+                cout << string(40, '=') << "\n\n";
+            }
+        } else {
+            cout << "\n\nThere was a problem with your booking\n";
+            cout << "Booking is canceled\n";
+            cout << string(40, '=') << "\n\n";
+            for (auto& p : people) {
+                p.status = "Canceled";
+            }
+
+        }
+
+    }
+       
+       
     if (!foundTodayRide) {
         cout << "No rides scheduled for today.\n";
     }
